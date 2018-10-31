@@ -49,6 +49,8 @@ public class QuestData
     {
         ValkyrieDebug.Log("Loading quest from: \"" + questPath + "\"" + System.Environment.NewLine);
         game = Game.Get();
+        // Access before constructor is finished
+        game.quest.qd = this;
 
         components = new Dictionary<string, QuestComponent>();
         questActivations = new Dictionary<string, ActivationData>();
@@ -223,6 +225,11 @@ public class QuestData
             Activation c = new Activation(name, content, source);
             components.Add(name, c);
         }
+        if (name.IndexOf(Generator.type) == 0)
+        {
+            Generator c = new Generator(name, content, source);
+            components.Add(name, c);
+        }
         // If not known ignore
     }
 
@@ -270,6 +277,17 @@ public class QuestData
                 ValkyrieDebug.Log("Error: No TileSide specified in quest component: " + name);
                 Application.Quit();
             }
+        }
+
+        // Create new type and location (used by generator)
+        public Tile(string name, string tileSide, float xPos, float yPos, int inRotation) : base(name)
+        {
+            locationSpecified = true;
+            typeDynamic = type;
+            Game game = Game.Get();
+            tileSideName = tileSide;
+            location = new Vector2(xPos, yPos);
+            rotation = inRotation;
         }
 
         // Save to ini string (used by editor)
@@ -906,13 +924,13 @@ public class QuestData
                 string[] array = data["operations"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
                 foreach (string s in array)
                 {
-                    operations.Add(new VarOperation(s));
+                    operations.Add(new VarOperation(s, format));
                 }
             }
             // Backwards support for format < 8
             if (format <= 8 && sectionName.StartsWith("EventEnd"))
             {
-                operations.Add(new VarOperation("$end,=,1"));
+                operations.Add(new VarOperation("$end,=,1", format));
             }
 
             conditions = new List<VarOperation>();
@@ -921,7 +939,7 @@ public class QuestData
                 string[] array = data["conditions"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
                 foreach (string s in array)
                 {
-                    conditions.Add(new VarOperation(s));
+                    conditions.Add(new VarOperation(s, format));
                 }
             }
 
@@ -1026,6 +1044,37 @@ public class QuestData
             }
             // If component is deleted, trim array
             removeComponents = RemoveFromArray(removeComponents, "");
+
+            // Quota var renamed
+            if (quotaVar.Equals(oldName))
+            {
+                quotaVar = newName;
+            }
+
+            // Update variable names in operations
+            foreach (VarOperation operation in operations)
+            {
+                if (operation.var.Equals(oldName))
+                {
+                    operation.var = newName;
+                }
+                if (operation.value.Equals(oldName))
+                {
+                    operation.value = newName;
+                }
+            }
+            // Update variable names in conditions
+            foreach (VarOperation condition in conditions)
+            {
+                if (condition.var.Equals(oldName))
+                {
+                    condition.var = newName;
+                }
+                if (condition.value.Equals(oldName))
+                {
+                    condition.value = newName;
+                }
+            }
         }
 
         // Save event to string (editor)
@@ -1180,26 +1229,25 @@ public class QuestData
             {
             }
 
-            public VarOperation(string inOp)
+            public VarOperation(string inOp, int format) //, Dictionary<string, QuestComponent> components)
             {
-                var = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries)[0];
-                operation = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries)[1];
-                value = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries)[2];
+                var fields = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                var = fields[0];
+                operation = fields[1];
+                value = fields[2];
 
                 // Support old internal var names (depreciated, format 3)
-                var = UpdateVarName(var);
-                value = UpdateVarName(value);
+
+                if (format < 11)
+                {
+                    var = VarDefinition.AddVarFromOldName(var);
+                    value = VarDefinition.AddVarFromOldName(value);
+                }
             }
 
             override public string ToString()
             {
                 return var + ',' + operation + ',' + value;
-            }
-
-            private string UpdateVarName(string s)
-            {
-                if (s.Equals("#fire")) return "$fire";
-                return s;
             }
         }
     }
@@ -1330,6 +1378,272 @@ public class QuestData
                 r += "puzzlealtlevel=" + puzzleAltLevel + nl;
             }
             return r;
+        }
+    }
+
+    public static class VarType
+    {
+        public static readonly string Float = "float";
+    }
+
+    public static class VarTypeInternal
+    {
+        public static readonly string Float = "float";
+        public static readonly string Int = "float";
+    }
+
+    // Var Definition
+    public class VarDefinition : QuestComponent
+    {
+        new public static string type = "Var";
+        // A bast type is used for default values
+        public string variableType = VarType.Float;
+        public string internalVariableType;
+        public float initialise = 0;
+        public bool minimumUsed = false;
+        public float minimum = 0;
+        public bool maximumUsed = false;
+        public float maximum = 1;
+        public bool campaign = false;
+        public bool readOnly = false;
+        public bool random = false;
+
+        // Create new with name (editor)
+        public VarDefinition(string s) : base(s)
+        {
+            source = "vars.ini";
+            typeDynamic = type;
+        }
+
+        // Create from ini data
+        public VarDefinition(string iniName, Dictionary<string, string> data, string pathIn) : base(iniName, data, pathIn)
+        {
+            typeDynamic = type;
+            // Get variable type
+            if (data.ContainsKey("type"))
+            {
+                SetVariableType(data["type"]);
+            }
+            if (variableType.Equals("bool"))
+            {
+                if (data.ContainsKey("initialise"))
+                {
+                    bool boolInit;
+                    bool.TryParse(data["initialise"], out boolInit);
+                    if (boolInit)
+                    {
+                        initialise = 1;
+                    }
+                }
+            }
+            else
+            {
+                if (data.ContainsKey("minimum"))
+                {
+                    minimumUsed = true;
+                    float.TryParse(data["minimum"], out minimum);
+                }
+                if (data.ContainsKey("maximum"))
+                {
+                    maximumUsed = true;
+                    float.TryParse(data["maximum"], out maximum);
+                }
+                if (data.ContainsKey("campaign"))
+                {
+                    bool.TryParse(data["campaign"], out campaign);
+                }
+                if (data.ContainsKey("initialise"))
+                {
+                    float.TryParse(data["initialise"], out initialise);
+                }
+                if (data.ContainsKey("random"))
+                {
+                    bool.TryParse(data["random"], out random);
+                }
+            }
+        }
+
+        // Create component from old variable name
+        public static string AddVarFromOldName(string oldName)
+        {
+            if (oldName.IndexOf("$%") == 0 || oldName.IndexOf("$@") == 0)
+            {
+                return "ValkVar" + oldName.Substring(2);
+            }
+            if (oldName.IndexOf("#") == 0 || oldName.IndexOf("$") == 0)
+            {
+                if (oldName.IndexOf("#rand") != 0)
+                {
+                    return "ValkVar" + oldName.Substring(1);
+                }
+            }
+            if ((oldName.IndexOf("-") == 0 || oldName.IndexOf(".") == 0)
+                || (oldName.Length > 0 && char.IsNumber(oldName[0])))
+            {
+                return oldName;
+            }
+
+            string newName = "Var" + oldName;
+            VarDefinition newDefinition = new VarDefinition(newName);
+
+            if (oldName.IndexOf("%") >= 0)
+            {
+                newDefinition.campaign = true;
+            }
+
+            if (oldName.IndexOf("@") >= 0)
+            {
+                newDefinition.SetVariableType("trigger");
+            }
+
+            if (oldName.IndexOf("#rand") == 0)
+            {
+                newDefinition.SetVariableType("int");
+                newDefinition.random = true;
+                newDefinition.minimumUsed = true;
+                newDefinition.minimum = 1;
+                newDefinition.maximumUsed = true;
+                float.TryParse(oldName.Substring(5), out newDefinition.maximum);
+            }
+
+            if (!Game.Get().quest.qd.components.ContainsKey(newName))
+            {
+                Game.Get().quest.qd.components.Add(newName, newDefinition);
+            }
+
+            return newName;
+        }
+
+        public bool IsBoolean()
+        {
+            if (variableType.Equals("trigger")) return true;
+            return variableType.Equals("bool");
+        }
+
+        public void SetVariableType(string newType)
+        {
+            if (newType.Equals(variableType)) return;
+
+            if (newType.Equals("trigger"))
+            {
+                variableType = newType;
+                internalVariableType = "int";
+                campaign = false;
+                initialise = 0;
+                minimumUsed = true;
+                maximumUsed = true;
+                minimum = 0;
+                maximum = 1;
+            }
+            if (newType.Equals("bool"))
+            {
+                variableType = newType;
+                internalVariableType = "int";
+                minimumUsed = true;
+                maximumUsed = true;
+                minimum = 0;
+                maximum = 1;
+            }
+            if (newType.Equals("int"))
+            {
+                if (variableType.Equals("bool"))
+                {
+                    minimumUsed = false;
+                    maximumUsed = false;
+                }
+                variableType = newType;
+                internalVariableType = "int";
+            }
+            if (newType.Equals("float"))
+            {
+                if (variableType.Equals("bool"))
+                {
+                    minimumUsed = false;
+                    maximumUsed = false;
+                }
+                variableType = newType;
+                internalVariableType = "float";
+            }
+        }
+
+        // Save to string (editor)
+        override public string ToString()
+        {
+            StringBuilder r = new StringBuilder().Append(base.ToString());
+
+            if (variableType.Equals("trigger"))
+            {
+                r.Append("type=").AppendLine(variableType);
+            }
+            else if (variableType.Equals("bool"))
+            {
+                r.Append("type=").AppendLine(variableType);
+                r.Append("initialise=").AppendLine(bool.TrueString);
+                if (random)
+                {
+                    r.Append("random=").AppendLine(random.ToString());
+                }
+                if (campaign)
+                {
+                    r.Append("campaign=").AppendLine(campaign.ToString());
+                }
+            }
+            else
+            {
+                if (!variableType.Equals("float"))
+                {
+                    r.Append("type=").AppendLine(variableType);
+                }
+                if (random)
+                {
+                    r.Append("random=").AppendLine(random.ToString());
+                }
+                if (minimumUsed)
+                {
+                    r.Append("minimum=").AppendLine(minimum.ToString());
+                }
+                if (maximumUsed)
+                {
+                    r.Append("maximum=").AppendLine(maximum.ToString());
+                }
+                if (campaign)
+                {
+                    r.Append("campaign=").AppendLine(campaign.ToString());
+                }
+                if (initialise != 0)
+                {
+                    r.Append("initialise=").AppendLine(initialise.ToString());
+                }
+            }
+
+            return r.ToString();
+        }
+    }
+    
+    // VarDefinitionData are content data that inherits from VarDefinition for reasons.
+    public class VarDefinitionData : VarDefinition
+    {
+        new public static string type = "ValkVar";
+        public int priority = 0;
+        public bool Private = false;
+
+        public VarDefinitionData(string name, Dictionary<string, string> data) : base(name, data, "")
+        {
+            typeDynamic = type;
+            if (data.ContainsKey("priority"))
+            {
+                int.TryParse(data["priority"], out priority);
+            }
+
+            if (data.ContainsKey("readonly"))
+            {
+                bool.TryParse(data["readonly"], out readOnly);
+            }
+
+            if (data.ContainsKey("private"))
+            {
+                bool.TryParse(data["private"], out Private);
+            }
         }
     }
 
@@ -1763,6 +2077,32 @@ public class QuestData
         }
     }
 
+    // Dynamic Generator component
+    public class Generator : QuestComponent
+    {
+        new public static string type = "Generator";
+
+        // Create new (editor)
+        public Generator(string s) : base(s)
+        {
+            source = "quest.ini";
+            typeDynamic = type;
+        }
+
+        // Create from ini data
+        public Generator(string name, Dictionary<string, string> data, string path) : base(name, data, path)
+        {
+            typeDynamic = type;
+        }
+
+        // Save to string
+        override public string ToString()
+        {
+            string nl = System.Environment.NewLine;
+            string r = base.ToString();
+            return r;
+        }
+    }
 
     // Scenario starting item
     public class QItem : QuestComponent
@@ -1899,7 +2239,7 @@ public class QuestData
     {
         public static int minumumFormat = 4;
         // Increment during changes, and again at release
-        public static int currentFormat = 9;
+        public static int currentFormat = 11;
         public int format = 0;
         public bool hidden = false;
         public bool valid = false;
