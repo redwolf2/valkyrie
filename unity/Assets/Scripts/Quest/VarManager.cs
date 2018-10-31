@@ -85,59 +85,62 @@ public class VarManager
         vars = newVars;*/
     }
 
-    public void SetValue(string var, float value)
+    public void SetValue(string name, float value)
     {
-        if (!vars.ContainsKey(var))
+        if (name == null) throw new System.ArgumentNullException("name");
+        if (!vars.ContainsKey(name))
         {
             Quest quest = Game.Get().quest;
             if (quest != null && quest.log != null)
             {
-                quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + var, true));
+                quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + name, true));
             }
-            vars.Add(var, 0);
+            vars.Add(name, 0);
         }
-
-        if (GetDefinition(var).minimumUsed && GetDefinition(var).minimum < value)
+        QuestData.VarDefinition definition = GetDefinition(name);
+        if (definition.minimumUsed && definition.minimum < value)
         {
-            vars[var] = GetDefinition(var).minimum;
+            vars[name] = GetDefinition(name).minimum;
         }
-        if (GetDefinition(var).maximumUsed && GetDefinition(var).maximum > value)
+        if (definition.maximumUsed && definition.maximum > value)
         {
-            vars[var] = GetDefinition(var).maximum;
+            vars[name] = definition.maximum;
         }
         else
         {
-            vars[var] = value;
+            vars[name] = value;
         }
 
-        if (GetDefinition(var).internalVariableType.Equals(QuestData.VarTypeInternal.Int))
+        if (definition.internalVariableType.Equals(QuestData.VarTypeInternal.Int))
         {
-            vars[var] = Mathf.RoundToInt(vars[var]);
+            vars[name] = Mathf.RoundToInt(vars[name]);
         }
     }
 
-    public float GetValue(string var)
+    public float GetValue(string name)
     {
-        if (!vars.ContainsKey(var))
+        if (name == null) throw new System.ArgumentNullException("name");
+        QuestData.VarDefinition definition = GetDefinition(name);
+        if (!vars.ContainsKey(name))
         {
             if (Game.Get().quest != null && Game.Get().quest.log != null)
             {
-                Game.Get().quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + var + " As: " + GetDefinition(var).initialise, true));
+                Game.Get().quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + name + " As: " + definition.initialise, true));
             }
-            vars.Add(var, GetDefinition(var).initialise);
+            vars.Add(name, definition.initialise);
         }
-        if (GetDefinition(var).random)
+        if (definition.random)
         {
-            if (GetDefinition(var).internalVariableType.Equals(QuestData.VarTypeInternal.Int))
+            if (definition.internalVariableType.Equals(QuestData.VarTypeInternal.Int))
             {
-                SetValue(var, Random.Range((int)GetDefinition(var).minimum, (int)(GetDefinition(var).maximum + 1)));
+                SetValue(name, Random.Range((int)definition.minimum, (int)(definition.maximum + 1)));
             }
             else
             {
-                SetValue(var, Random.Range(GetDefinition(var).minimum, GetDefinition(var).maximum));
+                SetValue(name, Random.Range(definition.minimum, definition.maximum));
             }
         }
-        return vars[var];
+        return vars[name];
     }
 
     public float GetOpValue(QuestData.Event.VarOperation op)

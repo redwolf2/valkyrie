@@ -1389,7 +1389,7 @@ public class QuestData
     public static class VarTypeInternal
     {
         public static readonly string Float = "float";
-        public static readonly string Int = "float";
+        public static readonly string Int = "int";
     }
 
     // Var Definition
@@ -1398,7 +1398,7 @@ public class QuestData
         new public static string type = "Var";
         // A bast type is used for default values
         public string variableType = VarType.Float;
-        public string internalVariableType;
+        public string internalVariableType = VarTypeInternal.Float;
         public float initialise = 0;
         public bool minimumUsed = false;
         public float minimum = 0;
