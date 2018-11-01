@@ -1384,6 +1384,7 @@ public class QuestData
     public static class VarType
     {
         public static readonly string Float = "float";
+        public static readonly string Bool = "bool";
     }
 
     public static class VarTypeInternal
@@ -1424,7 +1425,7 @@ public class QuestData
             {
                 SetVariableType(data["type"]);
             }
-            if (variableType.Equals("bool"))
+            if (variableType.Equals(VarType.Bool))
             {
                 if (data.ContainsKey("initialise"))
                 {
@@ -1517,7 +1518,7 @@ public class QuestData
         public bool IsBoolean()
         {
             if (variableType.Equals("trigger")) return true;
-            return variableType.Equals("bool");
+            return variableType.Equals(VarType.Bool);
         }
 
         public void SetVariableType(string newType)
@@ -1527,7 +1528,7 @@ public class QuestData
             if (newType.Equals("trigger"))
             {
                 variableType = newType;
-                internalVariableType = "int";
+                internalVariableType = VarTypeInternal.Int;
                 campaign = false;
                 initialise = 0;
                 minimumUsed = true;
@@ -1535,10 +1536,10 @@ public class QuestData
                 minimum = 0;
                 maximum = 1;
             }
-            if (newType.Equals("bool"))
+            if (newType.Equals(VarType.Bool))
             {
                 variableType = newType;
-                internalVariableType = "int";
+                internalVariableType = VarTypeInternal.Int;
                 minimumUsed = true;
                 maximumUsed = true;
                 minimum = 0;
@@ -1546,23 +1547,23 @@ public class QuestData
             }
             if (newType.Equals("int"))
             {
-                if (variableType.Equals("bool"))
+                if (variableType.Equals(VarType.Bool))
                 {
                     minimumUsed = false;
                     maximumUsed = false;
                 }
                 variableType = newType;
-                internalVariableType = "int";
+                internalVariableType = VarTypeInternal.Int;
             }
-            if (newType.Equals("float"))
+            if (newType.Equals(VarTypeInternal.Float))
             {
-                if (variableType.Equals("bool"))
+                if (variableType.Equals(VarType.Bool))
                 {
                     minimumUsed = false;
                     maximumUsed = false;
                 }
                 variableType = newType;
-                internalVariableType = "float";
+                internalVariableType = VarTypeInternal.Float;
             }
         }
 
@@ -1575,7 +1576,7 @@ public class QuestData
             {
                 r.Append("type=").AppendLine(variableType);
             }
-            else if (variableType.Equals("bool"))
+            else if (variableType.Equals(VarType.Bool))
             {
                 r.Append("type=").AppendLine(variableType);
                 r.Append("initialise=").AppendLine(bool.TrueString);
@@ -1590,7 +1591,7 @@ public class QuestData
             }
             else
             {
-                if (!variableType.Equals("float"))
+                if (!variableType.Equals(VarType.Float))
                 {
                     r.Append("type=").AppendLine(variableType);
                 }
