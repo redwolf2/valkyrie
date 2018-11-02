@@ -505,11 +505,12 @@ public class EditorComponentEvent : EditorComponent
         System.Action addAction,
         System.Action<QuestData.Event.VarOperation> setAction)
     {
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        Transform st = scrollArea.GetScrollTransform();
+        var ui = new UIElement(Game.EDITOR, st);
         ui.SetLocation(0.5f, offset, 18, 1);
         ui.SetText(new StringKey("val", "X_COLON", text));
 
-        ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        ui = new UIElement(Game.EDITOR, st);
         ui.SetLocation(18.5f, offset++, 1, 1);
         ui.SetText(CommonStringKeys.PLUS, Color.green);
         ui.SetButton(delegate { addAction(); });
@@ -519,12 +520,12 @@ public class EditorComponentEvent : EditorComponent
         {
             bool operationIsBoolean = VarManager.GetDefinition(op.var).IsBoolean();
             QuestData.Event.VarOperation tmp = op;
-            ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+            ui = new UIElement(Game.EDITOR, st);
             if (game.quest.qd.components.ContainsKey(op.var))
             {
                 ui.SetLocation(0.5f, offset, 7.5f, 1);
                 string tmpName = op.var;
-                UIElement link = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+                UIElement link = new UIElement(Game.EDITOR, st);
                 link.SetLocation(8, offset, 1, 1);
                 link.SetText("<b>⇨</b>", Color.blue);
                 link.SetButton(delegate { QuestEditorData.SelectComponent(tmpName); });
@@ -537,19 +538,19 @@ public class EditorComponentEvent : EditorComponent
             ui.SetText(op.var);
             new UIElementBorder(ui);
 
-            ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+            ui = new UIElement(Game.EDITOR, st);
             ui.SetLocation(9, offset, 2, 1);
             ui.SetText(op.operation);
             ui.SetButton(delegate { setAction(tmp); });
             new UIElementBorder(ui);
 
-            ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+            ui = new UIElement(Game.EDITOR, st);
             string displayValue = op.value;
             if (game.quest.qd.components.ContainsKey(op.value))
             {
                 ui.SetLocation(11, offset, 6.5f, 1);
                 string tmpName = op.value;
-                UIElement link = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+                UIElement link = new UIElement(Game.EDITOR, st);
                 link.SetLocation(17.5f, offset, 1, 1);
                 link.SetText("<b>⇨</b>", Color.blue);
                 link.SetButton(delegate { QuestEditorData.SelectComponent(tmpName); });
@@ -561,12 +562,7 @@ public class EditorComponentEvent : EditorComponent
                 {
                     bool setToValue;
                     bool.TryParse(displayValue, out setToValue);
-
-                    displayValue = new StringKey("val", "FALSE").Translate();
-                    if (setToValue)
-                    {
-                        displayValue = new StringKey("val", "TRUE").Translate();
-                    }
+                    displayValue = new StringKey("val", setToValue ? "TRUE" : "FALSE").Translate();
                 }
                 ui.SetLocation(11, offset, 7.5f, 1);
             }
@@ -574,7 +570,7 @@ public class EditorComponentEvent : EditorComponent
             ui.SetButton(delegate { SetValue(tmp); });
             new UIElementBorder(ui);
 
-            ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+            ui = new UIElement(Game.EDITOR, st);
             ui.SetLocation(18.5f, offset++, 1, 1);
             ui.SetText(CommonStringKeys.MINUS, Color.red);
             ui.SetButton(delegate { RemoveOp(tmp); });

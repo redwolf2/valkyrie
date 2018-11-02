@@ -123,9 +123,10 @@ public class VarManager
         QuestData.VarDefinition definition = GetDefinition(name);
         if (!vars.ContainsKey(name))
         {
-            if (Game.Get().quest != null && Game.Get().quest.log != null)
+            Quest quest = Game.Get().quest;
+            if (quest != null && quest.log != null)
             {
-                Game.Get().quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + name + " As: " + definition.initialise, true));
+                quest.log.Add(new Quest.LogEntry("Notice: Adding quest var: " + name + " As: " + definition.initialise, true));
             }
             vars.Add(name, definition.initialise);
         }

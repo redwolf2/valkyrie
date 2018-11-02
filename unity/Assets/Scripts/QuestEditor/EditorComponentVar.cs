@@ -12,7 +12,7 @@ public class EditorComponentVar : EditorComponent
 
     public EditorComponentVar(string nameIn) : base()
     {
-        Game game = Game.Get();
+        var game = Game.Get();
         varComponent = game.quest.qd.components[nameIn] as QuestData.VarDefinition;
         component = varComponent;
         name = component.sectionName;
@@ -27,7 +27,7 @@ public class EditorComponentVar : EditorComponent
 
     override public float AddSubComponents(float offset)
     {
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(0.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_TYPE")));
 
@@ -38,10 +38,10 @@ public class EditorComponentVar : EditorComponent
         new UIElementBorder(ui);
         offset += 2;
 
-        AddCampaignControl(offset);
-        AddRandomControl(offset);
-        AddInitialiseControl(offset);
-        AddLimitsControl(offset);
+        offset = AddCampaignControl(offset);
+        offset = AddRandomControl(offset);
+        offset = AddInitialiseControl(offset);
+        offset = AddLimitsControl(offset);
 
         return offset;
     }
@@ -50,20 +50,13 @@ public class EditorComponentVar : EditorComponent
     {
         if (varComponent.variableType.Equals("trigger")) return offset;
 
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(0.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_CAMPAIGN")));
 
         ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(8, offset, 4, 1);
-        if (varComponent.campaign)
-        {
-            ui.SetText(new StringKey("val","TRUE"));
-        }
-        else
-        {
-            ui.SetText(new StringKey("val","FALSE"));
-        }
+        ui.SetText(new StringKey("val", varComponent.campaign ? "TRUE" : "FALSE"));
         ui.SetButton(CampaignToggle);
         new UIElementBorder(ui);
 
@@ -74,20 +67,13 @@ public class EditorComponentVar : EditorComponent
     {
         if (varComponent.variableType.Equals("trigger")) return offset;
 
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(0.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_RANDOM")));
 
         ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(8, offset, 4, 1);
-        if (varComponent.random)
-        {
-            ui.SetText(new StringKey("val","TRUE"));
-        }
-        else
-        {
-            ui.SetText(new StringKey("val","FALSE"));
-        }
+        ui.SetText(new StringKey("val", varComponent.random ? "TRUE" : "FALSE"));
         ui.SetButton(RandomToggle);
         new UIElementBorder(ui);
 
@@ -100,7 +86,7 @@ public class EditorComponentVar : EditorComponent
         if (varComponent.campaign) return offset;
         if (varComponent.random) return offset;
         
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(0.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_INITIALISE")));
 
@@ -135,19 +121,15 @@ public class EditorComponentVar : EditorComponent
         if (varComponent.variableType.Equals("trigger")) return offset;
         if (varComponent.variableType.Equals("bool")) return offset;
 
-        UIElement ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
+        var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
         ui.SetLocation(0.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_MINIMUM")));
-
+        
         if (!varComponent.random)
         {
             ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
             ui.SetLocation(8, offset, 4, 1);
-            string minEnableString = new StringKey("val","FALSE").Translate();
-            if (varComponent.minimumUsed)
-            {
-                minEnableString = new StringKey("val","TRUE").Translate();
-            }
+            string minEnableString = new StringKey("val", varComponent.minimumUsed ? "TRUE" : "FALSE").Translate();
             ui.SetText(minEnableString);
             ui.SetButton(SetMinimumEnable);
             new UIElementBorder(ui);
@@ -173,11 +155,7 @@ public class EditorComponentVar : EditorComponent
         {
             ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
             ui.SetLocation(8, offset, 4, 1);
-            string maxEnableString = new StringKey("val", "FALSE").Translate();
-            if (varComponent.maximumUsed)
-            {
-                maxEnableString = new StringKey("val", "TRUE").Translate();
-            }
+            string maxEnableString = new StringKey("val", varComponent.maximumUsed ? "TRUE" : "FALSE").Translate();
             ui.SetText(maxEnableString);
             ui.SetButton(SetMaximumEnable);
             new UIElementBorder(ui);
