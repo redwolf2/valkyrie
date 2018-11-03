@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using Assets.Scripts.Content;
 using Assets.Scripts.UI;
+using System.Linq;
+using System.Collections.Generic;
 
 public class EditorComponentVar : EditorComponent
 {
@@ -48,15 +50,15 @@ public class EditorComponentVar : EditorComponent
 
     protected float AddCampaignControl(float offset)
     {
-        if (varComponent.variableType.Equals("trigger")) return offset;
+        if (varComponent.variableType.Equals(QuestData.VarType.Trigger)) return offset;
 
         var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(0.5f, offset, 8, 1);
+        ui.SetLocation(1.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_CAMPAIGN")));
 
         ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(8, offset, 4, 1);
-        ui.SetText(new StringKey("val", varComponent.campaign ? "TRUE" : "FALSE"));
+        ui.SetLocation(0.5f, offset, 1.5f, 1.5f);
+        ui.SetText(GetCheckBoxText(varComponent.campaign));
         ui.SetButton(CampaignToggle);
         new UIElementBorder(ui);
 
@@ -65,15 +67,15 @@ public class EditorComponentVar : EditorComponent
 
     protected float AddRandomControl(float offset)
     {
-        if (varComponent.variableType.Equals("trigger")) return offset;
+        if (varComponent.variableType.Equals(QuestData.VarType.Trigger)) return offset;
 
         var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(0.5f, offset, 8, 1);
+        ui.SetLocation(1.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_RANDOM")));
 
         ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(8, offset, 4, 1);
-        ui.SetText(new StringKey("val", varComponent.random ? "TRUE" : "FALSE"));
+        ui.SetLocation(0.5f, offset, 1.5f, 1.5f);
+        ui.SetText(GetCheckBoxText(varComponent.random));
         ui.SetButton(RandomToggle);
         new UIElementBorder(ui);
 
@@ -82,31 +84,26 @@ public class EditorComponentVar : EditorComponent
 
     protected float AddInitialiseControl(float offset)
     {
-        if (varComponent.variableType.Equals("trigger")) return offset;
+        if (varComponent.variableType.Equals(QuestData.VarType.Trigger)) return offset;
         if (varComponent.campaign) return offset;
         if (varComponent.random) return offset;
         
         var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(0.5f, offset, 8, 1);
+        ui.SetLocation(1.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_INITIALISE")));
 
-        if (varComponent.variableType.Equals("bool"))
+        if (varComponent.variableType.Equals(QuestData.VarType.Bool))
         {
-            string initString = new StringKey("val","FALSE").Translate();
-            if (varComponent.initialise != 0)
-            {
-                initString = new StringKey("val","TRUE").Translate();
-            }
             ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-            ui.SetLocation(8, offset, 4, 1);
-            ui.SetText(initString);
+            ui.SetLocation(0.5f, offset, 1.5f, 1.5f);
+            ui.SetText(GetCheckBoxText(varComponent.initialise != 0));
             ui.SetButton(SetInitialise);
             new UIElementBorder(ui);
         }
         else
         {
             initialiseUIE = new UIElementEditable(Game.EDITOR, scrollArea.GetScrollTransform());
-            initialiseUIE.SetLocation(8, offset, 4, 1);
+            initialiseUIE.SetLocation(9.5f, offset, 4, 1);
             initialiseUIE.SetText(varComponent.initialise.ToString());
             initialiseUIE.SetButton(SetInitialise);
             initialiseUIE.SetSingleLine();
@@ -118,19 +115,18 @@ public class EditorComponentVar : EditorComponent
 
     protected float AddLimitsControl(float offset)
     {
-        if (varComponent.variableType.Equals("trigger")) return offset;
-        if (varComponent.variableType.Equals("bool")) return offset;
+        if (varComponent.variableType.Equals(QuestData.VarType.Trigger)) return offset;
+        if (varComponent.variableType.Equals(QuestData.VarType.Bool)) return offset;
 
         var ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(0.5f, offset, 8, 1);
+        ui.SetLocation(1.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_MINIMUM")));
         
         if (!varComponent.random)
         {
             ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-            ui.SetLocation(8, offset, 4, 1);
-            string minEnableString = new StringKey("val", varComponent.minimumUsed ? "TRUE" : "FALSE").Translate();
-            ui.SetText(minEnableString);
+            ui.SetLocation(0.5f, offset, 1.5f, 1.5f);
+            ui.SetText(GetCheckBoxText(varComponent.minimumUsed));
             ui.SetButton(SetMinimumEnable);
             new UIElementBorder(ui);
         }
@@ -148,15 +144,14 @@ public class EditorComponentVar : EditorComponent
         offset += 2;
 
         ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-        ui.SetLocation(0.5f, offset, 8, 1);
+        ui.SetLocation(1.5f, offset, 8, 1);
         ui.SetText(new StringKey("val", "X_COLON", new StringKey("val", "VAR_MAXIMUM")));
 
         if (!varComponent.random)
         {
             ui = new UIElement(Game.EDITOR, scrollArea.GetScrollTransform());
-            ui.SetLocation(8, offset, 4, 1);
-            string maxEnableString = new StringKey("val", varComponent.maximumUsed ? "TRUE" : "FALSE").Translate();
-            ui.SetText(maxEnableString);
+            ui.SetLocation(0.5f, offset, 1.5f, 1.5f);
+            ui.SetText(GetCheckBoxText(varComponent.maximumUsed));
             ui.SetButton(SetMaximumEnable);
             new UIElementBorder(ui);
         }
@@ -176,22 +171,9 @@ public class EditorComponentVar : EditorComponent
 
     public void CycleVarType()
     {
-        if (varComponent.variableType.Equals("float"))
-        {
-            varComponent.SetVariableType("int");
-        }
-        else if (varComponent.variableType.Equals("int"))
-        {
-            varComponent.SetVariableType("bool");
-        }
-        else if (varComponent.variableType.Equals("bool"))
-        {
-            varComponent.SetVariableType("trigger");
-        }
-        else
-        {
-            varComponent.SetVariableType("float");
-        }
+        List<QuestData.VarType> list = QuestData.VarType.All.ToList();
+        int index = list.IndexOf(varComponent.variableType) + 1;
+        varComponent.SetVariableType(list[index < list.Count ? index : 0]);
         Update();
     }
 
@@ -211,7 +193,7 @@ public class EditorComponentVar : EditorComponent
 
     public void SetInitialise()
     {
-        if (varComponent.variableType.Equals("bool"))
+        if (varComponent.variableType.Equals(QuestData.VarType.Bool))
         {
             if (varComponent.initialise == 0)
             {

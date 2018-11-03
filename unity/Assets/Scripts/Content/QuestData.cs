@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -1381,16 +1382,64 @@ public class QuestData
         }
     }
 
-    public static class VarType
+    public sealed class VarType
     {
-        public static readonly string Float = "float";
-        public static readonly string Bool = "bool";
-    }
+        private readonly int value;
+        private readonly string name;
 
-    public static class VarTypeInternal
-    {
-        public static readonly string Float = "float";
-        public static readonly string Int = "int";
+        private VarType(int value, string name)
+        {
+            this.name = name;
+            this.value = value;
+        }
+
+        public static readonly VarType Float = new VarType(1, "float");
+        public static readonly VarType Bool = new VarType(2, "bool");
+        public static readonly VarType Int = new VarType(3, "int");
+        public static readonly VarType Trigger = new VarType(4, "trigger");
+
+        public static readonly IEnumerable<VarType> All = new List<VarType>
+                { Float, Bool, Int, Trigger };
+
+        public static VarType Parse(string value)
+        {
+            if (value == null) throw new System.ArgumentNullException(value);
+            VarType found = All.ToList().Find(type => string.Equals(type.name, value, System.StringComparison.InvariantCultureIgnoreCase));
+            if (found == null) throw new System.FormatException("VarType could not be parsed");
+            return found;
+        }
+
+        public static bool TryParse(string value, out VarType type)
+        {
+            try
+            {
+                type = Parse(value);
+                return true;
+            }
+            catch
+            {
+                type = null;
+                return false;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null) return false;
+            VarType objVar = obj as VarType;
+            if (objVar == null) return false;
+            return objVar.value == value;
+        }
+
+        public override int GetHashCode()
+        {
+            return value;
+        }
+
+        public override string ToString()
+        {
+            return name;
+        }
     }
 
     // Var Definition
@@ -1398,8 +1447,8 @@ public class QuestData
     {
         new public static string type = "Var";
         // A bast type is used for default values
-        public string variableType = VarType.Float;
-        public string internalVariableType = VarTypeInternal.Float;
+        public VarType variableType = VarType.Float;
+        public VarType internalVariableType = VarType.Float;
         public float initialise = 0;
         public bool minimumUsed = false;
         public float minimum = 0;
@@ -1423,7 +1472,7 @@ public class QuestData
             // Get variable type
             if (data.ContainsKey("type"))
             {
-                SetVariableType(data["type"]);
+                SetVariableType(VarType.Parse(data["type"]));
             }
             if (variableType.Equals(VarType.Bool))
             {
@@ -1494,12 +1543,12 @@ public class QuestData
 
             if (oldName.IndexOf("@") >= 0)
             {
-                newDefinition.SetVariableType("trigger");
+                newDefinition.SetVariableType(VarType.Trigger);
             }
 
             if (oldName.IndexOf("#rand") == 0)
             {
-                newDefinition.SetVariableType("int");
+                newDefinition.SetVariableType(VarType.Int);
                 newDefinition.random = true;
                 newDefinition.minimumUsed = true;
                 newDefinition.minimum = 1;
@@ -1517,18 +1566,18 @@ public class QuestData
 
         public bool IsBoolean()
         {
-            if (variableType.Equals("trigger")) return true;
+            if (variableType.Equals(VarType.Trigger)) return true;
             return variableType.Equals(VarType.Bool);
         }
 
-        public void SetVariableType(string newType)
+        public void SetVariableType(VarType newType)
         {
             if (newType.Equals(variableType)) return;
 
-            if (newType.Equals("trigger"))
+            if (newType.Equals(VarType.Trigger))
             {
                 variableType = newType;
-                internalVariableType = VarTypeInternal.Int;
+                internalVariableType = VarType.Int;
                 campaign = false;
                 initialise = 0;
                 minimumUsed = true;
@@ -1539,13 +1588,13 @@ public class QuestData
             if (newType.Equals(VarType.Bool))
             {
                 variableType = newType;
-                internalVariableType = VarTypeInternal.Int;
+                internalVariableType = VarType.Int;
                 minimumUsed = true;
                 maximumUsed = true;
                 minimum = 0;
                 maximum = 1;
             }
-            if (newType.Equals("int"))
+            if (newType.Equals(VarType.Int))
             {
                 if (variableType.Equals(VarType.Bool))
                 {
@@ -1553,9 +1602,9 @@ public class QuestData
                     maximumUsed = false;
                 }
                 variableType = newType;
-                internalVariableType = VarTypeInternal.Int;
+                internalVariableType = VarType.Int;
             }
-            if (newType.Equals(VarTypeInternal.Float))
+            if (newType.Equals(VarType.Float))
             {
                 if (variableType.Equals(VarType.Bool))
                 {
@@ -1563,22 +1612,22 @@ public class QuestData
                     maximumUsed = false;
                 }
                 variableType = newType;
-                internalVariableType = VarTypeInternal.Float;
+                internalVariableType = VarType.Float;
             }
         }
 
         // Save to string (editor)
         override public string ToString()
         {
-            StringBuilder r = new StringBuilder().Append(base.ToString());
+            var r = new StringBuilder().Append(base.ToString());
 
-            if (variableType.Equals("trigger"))
+            if (variableType.Equals(VarType.Trigger))
             {
-                r.Append("type=").AppendLine(variableType);
+                r.Append("type=").AppendLine(variableType.ToString());
             }
             else if (variableType.Equals(VarType.Bool))
             {
-                r.Append("type=").AppendLine(variableType);
+                r.Append("type=").AppendLine(variableType.ToString());
                 r.Append("initialise=").AppendLine(bool.TrueString);
                 if (random)
                 {
@@ -1593,7 +1642,7 @@ public class QuestData
             {
                 if (!variableType.Equals(VarType.Float))
                 {
-                    r.Append("type=").AppendLine(variableType);
+                    r.Append("type=").AppendLine(variableType.ToString());
                 }
                 if (random)
                 {

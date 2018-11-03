@@ -546,6 +546,7 @@ public class EditorComponentEvent : EditorComponent
 
             ui = new UIElement(Game.EDITOR, st);
             string displayValue = op.value;
+            bool setToValue;
             if (game.quest.qd.components.ContainsKey(op.value))
             {
                 ui.SetLocation(11, offset, 6.5f, 1);
@@ -560,11 +561,10 @@ public class EditorComponentEvent : EditorComponent
             {
                 if (operationIsBoolean && !Game.Get().cd.varDefinitions.ContainsKey(op.value))
                 {
-                    bool setToValue;
-                    bool.TryParse(displayValue, out setToValue);
-                    displayValue = new StringKey("val", setToValue ? "TRUE" : "FALSE").Translate();
+                    bool.TryParse(op.value, out setToValue);
+                    displayValue = GetCheckBoxText(setToValue);
                 }
-                ui.SetLocation(11, offset, 7.5f, 1);
+                ui.SetLocation(11, offset, 1.5f, 1.5f);
             }
             ui.SetText(displayValue);
             ui.SetButton(delegate { SetValue(tmp); });
@@ -671,8 +671,7 @@ public class EditorComponentEvent : EditorComponent
         Game game = Game.Get();
 
         UIWindowSelectionListTraits select = new UIWindowSelectionListTraits(SelectEventTrigger, new StringKey("val", "SELECT", CommonStringKeys.TRIGGER));
-
-
+        
         Dictionary<string, IEnumerable<string>> traits = new Dictionary<string, IEnumerable<string>>();
         traits.Add(new StringKey("val", "TYPE").Translate(), new string[] { new StringKey("val", "GENERAL").Translate() });
         select.AddItem("{NONE}", "", traits);
@@ -753,7 +752,7 @@ public class EditorComponentEvent : EditorComponent
         traits.Add(new StringKey("val", "TYPE").Translate(), new string[] { new StringKey("val", "VARS").Translate() });
         foreach (KeyValuePair<string, QuestData.VarDefinitionData> kv in game.cd.varDefinitions)
         {
-            if (kv.Value.variableType.Equals("trigger"))
+            if (kv.Value.variableType.Equals(QuestData.VarType.Trigger))
             {
                 select.AddItem(kv.Key, traits);
             }
@@ -762,8 +761,8 @@ public class EditorComponentEvent : EditorComponent
         {
             if (kv.Value is QuestData.VarDefinition)
             {
-                QuestData.VarDefinition questVar = kv.Value as QuestData.VarDefinition;
-                if (questVar.variableType.Equals("trigger"))
+                var questVar = kv.Value as QuestData.VarDefinition;
+                if (questVar.variableType.Equals(QuestData.VarType.Trigger))
                 {
                     select.AddItem(kv.Key, traits);
                 }

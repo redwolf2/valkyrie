@@ -130,7 +130,8 @@ namespace Assets.Scripts.UI
         /// Cannot be changed after ***FIXME***.</remarks>
         public void SetLocation(float x, float y, float width, float height)
         {
-            SetLocationPixels(UIScaler.GetPixelsPerUnit() * x, UIScaler.GetPixelsPerUnit() * y, UIScaler.GetPixelsPerUnit() * width, UIScaler.GetPixelsPerUnit() * height);
+            float ppu = UIScaler.GetPixelsPerUnit();
+            SetLocationPixels(ppu * x, ppu * y, ppu * width, ppu * height);
         }
 
         /// <summary>

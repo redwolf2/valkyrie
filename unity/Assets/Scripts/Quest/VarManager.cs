@@ -62,7 +62,7 @@ public class VarManager
         {
             if (kv.Value != 0)
             {
-                if(GetDefinition(kv.Key).variableType.Equals("trigger"))
+                if(GetDefinition(kv.Key).variableType.Equals(QuestData.VarType.Trigger))
                 {
                     toReturn.Add(kv.Key);
                 }
@@ -111,7 +111,7 @@ public class VarManager
             vars[name] = value;
         }
 
-        if (definition.internalVariableType.Equals(QuestData.VarTypeInternal.Int))
+        if (definition.internalVariableType.Equals(QuestData.VarType.Int))
         {
             vars[name] = Mathf.RoundToInt(vars[name]);
         }
@@ -132,7 +132,7 @@ public class VarManager
         }
         if (definition.random)
         {
-            if (definition.internalVariableType.Equals(QuestData.VarTypeInternal.Int))
+            if (definition.internalVariableType.Equals(QuestData.VarType.Int))
             {
                 SetValue(name, Random.Range((int)definition.minimum, (int)(definition.maximum + 1)));
             }

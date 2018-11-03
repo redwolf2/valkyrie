@@ -323,4 +323,9 @@ public class EditorComponent {
         component.source = source;
         Update();
     }
+
+    public string GetCheckBoxText(bool isChecked)
+    {
+        return isChecked ? "✔" : " ";
+    }
 }
