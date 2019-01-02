@@ -144,7 +144,7 @@ public class VarManager
         return vars[name];
     }
 
-    public float GetOpValue(QuestData.Event.VarOperation op)
+    public float GetOpValue(VarOperation op)
     {
         // Ensure var exists
         if (!vars.ContainsKey(op.var))
@@ -185,7 +185,7 @@ public class VarManager
         return GetValue(op.var);
     }
 
-    public void Perform(QuestData.Event.VarOperation op)
+    public void Perform(VarOperation op)
     {
         float value = GetOpValue(op);
 
@@ -275,7 +275,79 @@ public class VarManager
         }
     }
 
-    public bool Test(QuestData.Event.VarOperation op)
+
+    public bool Test(VarTests tests)
+    {
+        if (tests == null || tests.VarTestsComponents == null || tests.VarTestsComponents.Count == 0)
+            return true;
+
+        bool result = true;
+        string current_operator = "AND";
+        int index = 0;
+        int ignore_inside_parenthesis=0;
+
+        foreach (VarTestsComponent tc in tests.VarTestsComponents)
+        {
+            // ignore tests while we are running inside a parenthesis
+            if (ignore_inside_parenthesis > 0)
+            {
+                if (tc is VarTestsParenthesis)
+                {
+                    VarTestsParenthesis tp = (VarTestsParenthesis)tc;
+                    if (tp.parenthesis == "(")
+                        ignore_inside_parenthesis++;
+                    else if (tp.parenthesis == ")")
+                        ignore_inside_parenthesis--;
+                }
+
+                index++;
+                continue;
+            }
+
+            if (tc is VarOperation)
+            {
+                if (current_operator == "AND")
+                    result = (result && Test((VarOperation)tc));
+                else if (current_operator == "OR")
+                    result = (result || Test((VarOperation)tc));
+            }
+            else if (tc is VarTestsLogicalOperator)
+            {
+                current_operator = ((VarTestsLogicalOperator)tc).op;
+            }
+            else if (tc is VarTestsParenthesis)
+            {
+                VarTestsParenthesis tp = (VarTestsParenthesis)tc;
+                if (tp.parenthesis == "(")
+                {
+                    List<VarTestsComponent> remaining_tests = tests.VarTestsComponents.GetRange(index+1, tests.VarTestsComponents.Count - (index+1));
+                    if (current_operator == "AND")
+                        result = (result && Test(new VarTests(remaining_tests)));
+                    else if (current_operator == "OR")
+                        result = (result || Test(new VarTests(remaining_tests)));
+
+                    ignore_inside_parenthesis = 1;
+                }
+                else if (tp.parenthesis == ")")
+                {
+                    return result;
+                }
+            }
+
+            index++;
+        }
+
+        if(ignore_inside_parenthesis>0)
+        {
+            // we should not get here
+            ValkyrieTools.ValkyrieDebug.Log("Invalid Test :" + tests.ToString() + "\n returns " + result);
+        }
+
+        return result;
+    }
+
+
+    public bool Test(VarOperation op)
     {
         float value = GetOpValue(op);
         if (op.operation.Equals("=="))
@@ -326,21 +398,9 @@ public class VarManager
         return false;
     }
 
-    public bool Test(List<QuestData.Event.VarOperation> ops)
+    public void Perform(List<VarOperation> ops)
     {
-        foreach (QuestData.Event.VarOperation op in ops)
-        {
-            if (!Test(op))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public void Perform(List<QuestData.Event.VarOperation> ops)
-    {
-        foreach (QuestData.Event.VarOperation op in ops)
+        foreach (VarOperation op in ops)
         {
             Perform(op);
         }

@@ -214,6 +214,7 @@ SELECT_TO_DELETE,Select {0} To Delete
 HIDDEN,Hidden
 ACTIVE,Active
 SET,Set
+SET_EDITOR_ALPHA,Editor Transparency
 SKILL,Skill
 SELECT_SKILLS,Select Skills
 SPAWN,Spawn
@@ -224,6 +225,9 @@ START,Start
 
 TESTS,Tests
 TILE,Tile
+
+AND,AND
+OR,OR
 
 TOKEN,Token
 TOOLS,Tools
@@ -241,6 +245,7 @@ VERTICAL,Vertical
 ALIGN,Align
 SIZE,Size
 TEXT_SIZE,Text Size
+BACKGROUND_COLOUR,Background colour
 ASPECT,Aspect
 BORDER,Border
 NO_BORDER,No Border

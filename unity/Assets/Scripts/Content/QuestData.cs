@@ -226,11 +226,6 @@ public class QuestData
             Activation c = new Activation(name, content, source);
             components.Add(name, c);
         }
-        if (name.IndexOf(Generator.type) == 0)
-        {
-            Generator c = new Generator(name, content, source);
-            components.Add(name, c);
-        }
         // If not known ignore
     }
 
@@ -387,7 +382,7 @@ public class QuestData
             cancelable = true;
 
             // Tokens don't have conditions
-            conditions = new List<VarOperation>();
+            tests = null;
 
             tokenName = "";
             if (data.ContainsKey("type"))
@@ -428,6 +423,7 @@ public class QuestData
         public float size = 1;
         public float textSize = 1;
         public string textColor = "white";
+        public string textBackgroundColor = "transparent";
         public float aspect = 1;
         public bool border = false;
 
@@ -483,6 +479,11 @@ public class QuestData
                 textColor = data["textcolor"];
             }
 
+            if (data.ContainsKey("textbackgroundcolor"))
+            {
+                textBackgroundColor = data["textbackgroundcolor"];
+            }
+            
             if (data.ContainsKey("halign"))
             {
                 if (data["halign"].Equals("left"))
@@ -530,6 +531,11 @@ public class QuestData
             if (!textColor.Equals("white"))
             {
                 r += "textcolor=" + textColor + nl;
+            }
+
+            if (!textBackgroundColor.Equals("transparent"))
+            {
+                r += "textbackgroundcolor=" + textBackgroundColor + nl;
             }
 
             if (verticalUnits)
@@ -777,8 +783,6 @@ public class QuestData
         public int maxHeroes = 0;
         public string[] addComponents;
         public string[] removeComponents;
-        public List<VarOperation> operations;
-        public List<VarOperation> conditions;
         public bool cancelable = false;
         public bool highlight = false;
         public bool randomEvents = false;
@@ -805,14 +809,14 @@ public class QuestData
             addComponents = new string[0];
             removeComponents = new string[0];
             operations = new List<VarOperation>();
-            conditions = new List<VarOperation>();
+            tests = new VarTests();
             minCam = false;
             maxCam = false;
             music = new List<string>();
         }
 
         // Create event from ini data
-        public Event(string name, Dictionary<string, string> data, string path, int format) : base(name, data, path)
+        public Event(string name, Dictionary<string, string> data, string path, int format) : base(name, data, path, format)
         {
             typeDynamic = type;
 
@@ -880,7 +884,7 @@ public class QuestData
                     quotaVar = data["quota"];
                 }
             }
-            
+
             // minimum heros required to be selected for event
             if (data.ContainsKey("minhero"))
             {
@@ -932,16 +936,6 @@ public class QuestData
             if (format <= 8 && sectionName.StartsWith("EventEnd"))
             {
                 operations.Add(new VarOperation("$end,=,1", format));
-            }
-
-            conditions = new List<VarOperation>();
-            if (data.ContainsKey("conditions"))
-            {
-                string[] array = data["conditions"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
-                foreach (string s in array)
-                {
-                    conditions.Add(new VarOperation(s, format));
-                }
             }
 
             // Randomise next event setting
@@ -1064,18 +1058,6 @@ public class QuestData
                     operation.value = newName;
                 }
             }
-            // Update variable names in conditions
-            foreach (VarOperation condition in conditions)
-            {
-                if (condition.var.Equals(oldName))
-                {
-                    condition.var = newName;
-                }
-                if (condition.value.Equals(oldName))
-                {
-                    condition.value = newName;
-                }
-            }
         }
 
         // Save event to string (editor)
@@ -1163,26 +1145,6 @@ public class QuestData
                 r += "trigger=" + trigger + nl;
             }
 
-            if (operations.Count > 0)
-            {
-                r += "operations=";
-                foreach (VarOperation o in operations)
-                {
-                    r += o.ToString() + " ";
-                }
-                r = r.Substring(0, r.Length - 1) + nl;
-            }
-
-            if (conditions.Count > 0)
-            {
-                r += "conditions=";
-                foreach (VarOperation o in conditions)
-                {
-                    r += o.ToString() + " ";
-                }
-                r = r.Substring(0, r.Length - 1) + nl;
-            }
-
             if (randomEvents)
             {
                 r += "randomevents=true" + nl;
@@ -1218,38 +1180,6 @@ public class QuestData
             }
 
             return r;
-        }
-
-        public class VarOperation
-        {
-            public string var = "";
-            public string operation = "";
-            public string value = "";
-
-            public VarOperation()
-            {
-            }
-
-            public VarOperation(string inOp, int format) //, Dictionary<string, QuestComponent> components)
-            {
-                var fields = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
-                var = fields[0];
-                operation = fields[1];
-                value = fields[2];
-
-                // Support old internal var names (depreciated, format 3)
-
-                if (format < 11)
-                {
-                    var = VarDefinition.AddVarFromOldName(var);
-                    value = VarDefinition.AddVarFromOldName(value);
-                }
-            }
-
-            override public string ToString()
-            {
-                return var + ',' + operation + ',' + value;
-            }
         }
     }
 
@@ -1715,6 +1645,10 @@ public class QuestData
         public UnityEngine.UI.Image image;
         // comment for developers
         public string comment = "";
+        // Var tests and operations if required
+        public VarTests tests = null;
+        public List<VarOperation> operations = null;
+
         private static char DOT = '.';
         public string genKey(string element)
         {
@@ -1735,7 +1669,7 @@ public class QuestData
         }
 
         // Construct from ini data
-        public QuestComponent(string nameIn, Dictionary<string, string> data, string sourceIn)
+        public QuestComponent(string nameIn, Dictionary<string, string> data, string sourceIn, int format=-1)
         {
             typeDynamic = type;
             sectionName = nameIn;
@@ -1758,6 +1692,45 @@ public class QuestData
             if (data.ContainsKey("comment"))
             {
                 comment = data["comment"];
+            }
+
+            operations = new List<VarOperation>();
+            if (data.ContainsKey("operations"))
+            {
+                string[] array = data["operations"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                foreach (string s in array)
+                {
+                    operations.Add(new VarOperation(s, format));
+                }
+            }
+
+            // Backwards support for format < 8
+            if (format <= 8 && sectionName.StartsWith("EventEnd"))
+            {
+                operations.Add(new VarOperation("$end,=,1", format));
+            }
+
+            tests = new VarTests();
+            if (data.ContainsKey("vartests"))
+            {
+                //todo load save
+                string[] array = data["vartests"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                foreach (string s in array)
+                {
+                    tests.Add(s);
+                }
+            }
+            // Backwards support for conditions
+            else if (data.ContainsKey("conditions"))
+            {
+                string[] array = data["conditions"].Split(" ".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                int i = 0;
+                foreach (string s in array)
+                {
+                    if (i > 0) tests.Add(new VarTestsLogicalOperator("AND"));
+                    tests.Add(new VarOperation(s, format));
+                    i++;
+                }
             }
         }
 
@@ -1814,6 +1787,22 @@ public class QuestData
             {
                 r += "comment=" + comment + nl;
             }
+
+            if (operations != null && operations.Count > 0)
+            {
+                r += "operations=";
+                foreach (VarOperation o in operations)
+                {
+                    r += o.ToString() + " ";
+                }
+                r = r.Substring(0, r.Length - 1) + nl;
+            }
+
+            if (tests != null && tests.VarTestsComponents.Count > 0)
+            {
+                r += "vartests=" + tests.ToString() + nl;
+            }
+
             return r;
         }
     }
@@ -2123,33 +2112,6 @@ public class QuestData
             {
                 r += "masterfirst=" + masterFirst.ToString() + nl;
             }
-            return r;
-        }
-    }
-
-    // Dynamic Generator component
-    public class Generator : QuestComponent
-    {
-        new public static string type = "Generator";
-
-        // Create new (editor)
-        public Generator(string s) : base(s)
-        {
-            source = "quest.ini";
-            typeDynamic = type;
-        }
-
-        // Create from ini data
-        public Generator(string name, Dictionary<string, string> data, string path) : base(name, data, path)
-        {
-            typeDynamic = type;
-        }
-
-        // Save to string
-        override public string ToString()
-        {
-            string nl = System.Environment.NewLine;
-            string r = base.ToString();
             return r;
         }
     }
