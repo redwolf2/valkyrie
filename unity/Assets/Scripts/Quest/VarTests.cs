@@ -41,7 +41,7 @@ public class VarTests
         }
         if (part[0].Equals(VarOperation.GetVarTestsComponentType()))
         {
-            VarTestsComponents.Add(new VarOperation(part[1], 0));
+            VarTestsComponents.Add(new VarOperation(part[1], QuestData.Quest.currentFormat));
         }
     }
 
@@ -354,16 +354,16 @@ public class VarOperation : VarTestsComponent
 
     public VarOperation(string inOp, int format)
     {
-        string[] splitted_string = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+        string[] inOpFields = inOp.Split(",".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
 
-        if (splitted_string.Length != 3)
+        if (inOpFields.Length != 3)
         {
             ValkyrieDebug.Log("Invalid var operation: " + inOp);
         }
 
-        var = splitted_string[0];
-        operation = splitted_string[1];
-        value = splitted_string[2];
+        var = inOpFields[0];
+        operation = inOpFields[1];
+        value = inOpFields[2];
 
         // Support old internal var names (depreciated, format 3)
         if (format < 11)
@@ -371,6 +371,8 @@ public class VarOperation : VarTestsComponent
             var = QuestData.VarDefinition.AddVarFromOldName(var);
             value = QuestData.VarDefinition.AddVarFromOldName(value);
         }
+
+        var = UpdateVarName(var);
     }
 
     override public string ToString()
@@ -380,7 +382,7 @@ public class VarOperation : VarTestsComponent
 
     private string UpdateVarName(string s)
     {
-        if (s.Equals("#fire")) return "$fire";
+        if (string.Equals(s, "#fire")) return "$fire";
         return s;
     }
 

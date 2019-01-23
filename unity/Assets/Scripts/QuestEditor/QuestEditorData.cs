@@ -521,13 +521,15 @@ public class QuestEditorData {
     {
         Game game = Game.Get();
         int index = 0;
-
-        while (game.quest.qd.components.ContainsKey("Var" + index))
+        string varName;
+        while (true)
         {
+            varName = "Var" + index;
+            if (!game.quest.qd.components.ContainsKey(varName)) break;
             index++;
         }
-        game.quest.qd.components.Add("Var" + index, new QuestData.VarDefinition("Var" + index));
-        SelectComponent("Var" + index);
+        game.quest.qd.components.Add(varName, new QuestData.VarDefinition(varName));
+        SelectComponent(varName);
     }
 
     // Item selected from list for deletion
