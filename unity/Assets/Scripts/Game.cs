@@ -16,6 +16,7 @@ public class Game : MonoBehaviour {
     public static readonly string HEROSELECT = "heroselect";
     public static readonly string BOARD = "board";
     public static readonly string QUESTUI = "questui";
+    public static readonly string QUESTLIST = "questlist";
     public static readonly string EDITOR = "editor";
     public static readonly string UIPHASE = "uiphase";
     public static readonly string TRANSITION = "transition";
@@ -75,6 +76,8 @@ public class Game : MonoBehaviour {
     public bool testMode = false;
     // Stats manager for quest rating
     public StatsManager stats;
+    // Quests manager
+    public QuestsManager questsList;
 
     // List of things that want to know if the mouse is clicked
     protected List<IUpdateListener> updateList;
@@ -82,11 +85,17 @@ public class Game : MonoBehaviour {
     // Import thread
     public GameSelectionScreen gameSelect;
 
+    // List of quests window
+    public QuestSelectionScreen questSelectionScreen = null;
+
     // Current language
     public string currentLang;
 
     // Set when in quest editor
     public bool editMode = false;
+
+    // Debug option
+    public bool debugTests = false;
 
     // This is used all over the place to find the game object.  Game then provides acces to common objects
     public static Game Get()
@@ -133,7 +142,15 @@ public class Game : MonoBehaviour {
             editorTransparency = 0.3f;
         else
             float.TryParse(vSet, out editorTransparency);
-        
+
+        string s_debug_tests = config.data.Get("Debug", "tests");
+        if (s_debug_tests != "")
+        {
+            s_debug_tests = s_debug_tests.ToLower();
+            if (s_debug_tests == "true" || s_debug_tests == "1")
+                debugTests = true;
+        }
+
         // On android extract streaming assets for use
         if (Application.platform == RuntimePlatform.Android)
         {
@@ -165,6 +182,10 @@ public class Game : MonoBehaviour {
         // The newline at the end stops the stack trace appearing in the log
         ValkyrieDebug.Log("Valkyrie Version: " + version + System.Environment.NewLine);
 
+#if UNITY_STANDALONE
+        SetScreenOrientationToLandscape();
+#endif
+
         // Bring up the Game selector
         gameSelect = new GameSelectionScreen();
     }
@@ -172,17 +193,6 @@ public class Game : MonoBehaviour {
     // This is called by 'start quest' on the main menu
     public void SelectQuest()
     {
-        // Find any content packs at the location
-        cd = new ContentData(gameType.DataDirectory());
-        // Check if we found anything
-        if (cd.GetPacks().Count == 0)
-        {
-            ValkyrieDebug.Log("Error: Failed to find any content packs, please check that you have them present in: " + gameType.DataDirectory() + System.Environment.NewLine);
-            Application.Quit();
-        }
-
-        // Load configured packs
-        cd.LoadContentID("");
         Dictionary<string, string> packs = config.data.Get(gameType.TypeName() + "Packs");
         if (packs != null)
         {
@@ -192,25 +202,15 @@ public class Game : MonoBehaviour {
             }
         }
 
-        // Get a list of available quests
-        Dictionary<string, QuestData.Quest> ql = QuestLoader.GetQuests();
-
         // Pull up the quest selection page
-        new QuestSelectionScreen(ql);
+        if(questSelectionScreen==null)
+            questSelectionScreen = new QuestSelectionScreen();
+        questSelectionScreen.Show();
     }
 
     // This is called by editor on the main menu
     public void SelectEditQuest()
     {
-        // Find any content packs at the location
-        cd = new ContentData(gameType.DataDirectory());
-        // Check if we found anything
-        if (cd.GetPacks().Count == 0)
-        {
-            ValkyrieDebug.Log("Error: Failed to find any content packs, please check that you have them present in: " + gameType.DataDirectory() + System.Environment.NewLine);
-            Application.Quit();
-        }
-
         // We load all packs for the editor, not just those selected
         foreach (string pack in cd.GetPacks())
         {
@@ -262,7 +262,7 @@ public class Game : MonoBehaviour {
         ui.SetButton(Destroyer.QuestSelect);
         new UIElementBorder(ui, Color.red);
     }
-    
+
     // HeroCanvas validates selection and starts quest if everything is good
     public void EndSelection()
     {
@@ -384,6 +384,27 @@ public class Game : MonoBehaviour {
     {
         updateList.Add(obj);
     }
+
+#if UNITY_STANDALONE
+    [System.Runtime.InteropServices.DllImport("User32.dll")]
+    private static extern bool SetDisplayAutoRotationPreferences(int value);
+
+    private static void SetScreenOrientationToLandscape()
+    {
+        SetDisplayAutoRotationPreferences((int)ORIENTATION_PREFERENCE.ORIENTATION_PREFERENCE_LANDSCAPE |
+            (int)ORIENTATION_PREFERENCE.ORIENTATION_PREFERENCE_LANDSCAPE_FLIPPED);
+    }
+
+    private enum ORIENTATION_PREFERENCE
+    {
+        ORIENTATION_PREFERENCE_NONE = 0x0,
+        ORIENTATION_PREFERENCE_LANDSCAPE = 0x1,
+        ORIENTATION_PREFERENCE_PORTRAIT = 0x2,
+        ORIENTATION_PREFERENCE_LANDSCAPE_FLIPPED = 0x4,
+        ORIENTATION_PREFERENCE_PORTRAIT_FLIPPED = 0x8
+    }
+#endif
+
 }
 
 public interface IUpdateListener

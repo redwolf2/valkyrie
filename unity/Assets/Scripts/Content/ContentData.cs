@@ -13,6 +13,7 @@ public class ContentData {
     public HashSet<string> loadedPacks;
     public List<ContentPack> allPacks;
     public Dictionary<string, PackTypeData> packTypes;
+    public Dictionary<string, StringKey> packSymbol;
     public Dictionary<string, TileSideData> tileSides;
     public Dictionary<string, HeroData> heroes;
     public Dictionary<string, ClassData> classes;
@@ -129,6 +130,9 @@ public class ContentData {
         // This is pack type for sorting packs
         packTypes = new Dictionary<string, PackTypeData>();
 
+        // This is pack symbol list
+        packSymbol = new Dictionary<string, StringKey>();
+    
         // This is all of the available sides of tiles (not currently tracking physical tiles)
         tileSides = new Dictionary<string, TileSideData>();
 
@@ -277,6 +281,9 @@ public class ContentData {
 
             // Add content pack
             allPacks.Add(pack);
+
+            // Add symbol
+            packSymbol.Add(pack.id, new StringKey("val", pack.id + "_SYMBOL"));
 
             // We finish without actually loading the content, this is done later (content optional)
         }
@@ -1426,11 +1433,21 @@ public class TokenData : GenericData
 
     public void init(Dictionary<string, string> content)
     {
-        if (content.ContainsKey("x"))
+
+        if (Application.platform == RuntimePlatform.Android && content.ContainsKey("x_android"))
+        {
+            int.TryParse(content["x_android"], out x);
+        }
+        else if (content.ContainsKey("x"))
         {
             int.TryParse(content["x"], out x);
         }
-        if (content.ContainsKey("y"))
+
+        if (Application.platform == RuntimePlatform.Android && content.ContainsKey("y_android"))
+        {
+            int.TryParse(content["y_android"], out y);
+        }
+        else if (content.ContainsKey("y"))
         {
             int.TryParse(content["y"], out y);
         }

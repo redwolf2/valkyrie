@@ -267,7 +267,23 @@ namespace Assets.Scripts.UI.Screens
             // Check if import neeeded
             if (!fcD2E.NeedImport())
             {
-                Game.Get().gameType = new D2EGameType();
+                Game game = Game.Get();
+
+                game.gameType = new D2EGameType();
+
+                // Loading list of content - doing this later is not required
+                game.cd = new ContentData(game.gameType.DataDirectory());
+                // Check if we found anything
+                if (game.cd.GetPacks().Count == 0)
+                {
+                    ValkyrieDebug.Log("Error: Failed to find any content packs, please check that you have them present in: " + game.gameType.DataDirectory() + System.Environment.NewLine);
+                    Application.Quit();
+                }
+                // Load the base content - pack will be loaded later if required
+                game.cd.LoadContentID("");
+
+                // Download quests list
+                game.questsList = new QuestsManager();
                 Texture2D cursor = Resources.Load("sprites/CursorD2E") as Texture2D;
                 Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
                 loadLocalization();
@@ -278,8 +294,6 @@ namespace Assets.Scripts.UI.Screens
         // Import content
         public void Import(string type, bool manual_path_selection=false)
         {
-            Destroyer.Destroy();
-
             string path = null;
 
             if(manual_path_selection)
@@ -289,8 +303,19 @@ namespace Assets.Scripts.UI.Screens
                 if (type.Equals("MoM")) app_filename = "Mansions of Madness";
 
                 string[] array_path = SFB.StandaloneFileBrowser.OpenFilePanel("Select file " + app_filename + ".exe", "", "exe", false);
-                path = Path.Combine(Path.GetDirectoryName(array_path[0]), app_filename+"_Data");
+
+                // return when pressing back
+                if (array_path.Length == 0)
+                    return;
+
+                path = Path.Combine(Path.GetDirectoryName(array_path[0]), app_filename + "_Data");
+
+                // return if wrong file is selected
+                if (!Directory.Exists(path))
+                    return;
             }
+
+            Destroyer.Destroy();
 
             new LoadingScreen(CONTENT_IMPORTING.Translate());
             importType = type;
@@ -318,9 +343,24 @@ namespace Assets.Scripts.UI.Screens
             // Check if import neeeded
             if (!fcMoM.NeedImport())
             {
-                Game.Get().gameType = new MoMGameType();
+                Game game = Game.Get();
+                game.gameType = new MoMGameType();
+
+                // Loading list of content - doing this later is not required
+                game.cd = new ContentData(game.gameType.DataDirectory());
+                // Check if we found anything
+                if (game.cd.GetPacks().Count == 0)
+                {
+                    ValkyrieDebug.Log("Error: Failed to find any content packs, please check that you have them present in: " + game.gameType.DataDirectory() + System.Environment.NewLine);
+                    Application.Quit();
+                }
+                // Load the base content - pack will be loaded later if required
+                game.cd.LoadContentID("");
+
+                // Download quests list
+                game.questsList = new QuestsManager();
                 // MoM also has a special reound controller
-                Game.Get().roundControl = new RoundControllerMoM();
+                game.roundControl = new RoundControllerMoM();
                 Texture2D cursor = Resources.Load("sprites/CursorMoM") as Texture2D;
                 Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
                 loadLocalization();
@@ -404,6 +444,7 @@ namespace Assets.Scripts.UI.Screens
                         ValkyrieDebug.Log("Writing text asset to '" + f + "'");
                         File.WriteAllText(f, asset.ToString());
                     }
+                    bundle.Unload(false);
                 }
             }
             catch (System.Exception ex)

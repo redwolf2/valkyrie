@@ -34,18 +34,6 @@ namespace Assets.Scripts.UI.Screens
 
             game = Game.Get();
 
-            // Find any content packs at the location
-            game.cd = new ContentData(game.gameType.DataDirectory());
-            // Check if we found anything (must have found at least base)
-            if (game.cd.allPacks.Count == 0)
-            {
-                ValkyrieDebug.Log("Error: Failed to find any content packs, please check that you have them present in: " + game.gameType.DataDirectory() + System.Environment.NewLine);
-                Application.Quit();
-            }
-
-            // load base to get types
-            game.cd.LoadContentID("");
-
             // Create elements for the screen
             CreateElements();
         }
@@ -84,8 +72,8 @@ namespace Assets.Scripts.UI.Screens
             Game game = Game.Get();
 
             // Select language text
-            UIElement ui = new UIElement();
-            ui.SetLocation(UIScaler.GetHCenter() - 10, 5, 20, 2);
+            UIElement ui = new UIElement(Game.DIALOG);
+            ui.SetLocation(UIScaler.GetHCenter() - 8, 5, 16, 2);
             ui.SetText(SET_EDITOR_ALPHA);
             ui.SetTextAlignment(TextAnchor.MiddleCenter);
             ui.SetFont(game.gameType.GetHeaderFont());
@@ -93,7 +81,7 @@ namespace Assets.Scripts.UI.Screens
 
             Texture2D SampleTex = ContentData.FileToTexture(game.cd.images[IMG_LOW_EDITOR_TRANSPARENCY].image);
             Sprite SampleSprite = Sprite.Create(SampleTex, new Rect(0, 0, SampleTex.width, SampleTex.height), Vector2.zero, 1);
-            ui = new UIElement(Game.HEROSELECT);
+            ui = new UIElement(Game.DIALOG);
             ui.SetLocation(UIScaler.GetHCenter()-3, 8, 6, 6);
             ui.SetButton(delegate { UpdateEditorTransparency(0.2f); });
             ui.SetImage(SampleSprite);
@@ -102,7 +90,7 @@ namespace Assets.Scripts.UI.Screens
 
             SampleTex = ContentData.FileToTexture(game.cd.images[IMG_MEDIUM_EDITOR_TRANSPARENCY].image);
             SampleSprite = Sprite.Create(SampleTex, new Rect(0, 0, SampleTex.width, SampleTex.height), Vector2.zero, 1);
-            ui = new UIElement(Game.HEROSELECT);
+            ui = new UIElement(Game.DIALOG);
             ui.SetLocation(UIScaler.GetHCenter() - 3, 15, 6, 6);
             ui.SetButton(delegate { UpdateEditorTransparency(0.3f); });
             ui.SetImage(SampleSprite);
@@ -111,7 +99,7 @@ namespace Assets.Scripts.UI.Screens
             
             SampleTex = ContentData.FileToTexture(game.cd.images[IMG_HIGH_EDITOR_TRANSPARENCY].image);
             SampleSprite = Sprite.Create(SampleTex, new Rect(0, 0, SampleTex.width, SampleTex.height), Vector2.zero, 1);
-            ui = new UIElement(Game.HEROSELECT);
+            ui = new UIElement(Game.DIALOG);
             ui.SetLocation(UIScaler.GetHCenter() - 3, 22, 6, 6);
             ui.SetButton(delegate { UpdateEditorTransparency(0.4f); });
             ui.SetImage(SampleSprite);
@@ -261,9 +249,9 @@ namespace Assets.Scripts.UI.Screens
             // In D2E there is an additional language
             // It can change in future
 
-            string[] langs = "English,Spanish,French,German,Italian,Portuguese,Polish,Japanese,Chinese,Czech".Split(',');
-            // For now, English and Spanish languages available.
-            HashSet<string> enabled_langs = new HashSet<string> ("English,Spanish,French,Italian,German,Portuguese,Polish,Chinese".Split(','));
+            string[] langs = "English,Spanish,French,German,Italian,Portuguese,Polish,Russian,Chinese,Czech".Split(','); // Japanese removed to fit into screen
+            // For now, the languages below are available.
+            HashSet<string> enabled_langs = new HashSet<string>("English,Spanish,French,Italian,German,Portuguese,Polish,Russian,Chinese".Split(','));
 
             //The first button in the list of buttons should start in this vertical coordinate
             float verticalStart = UIScaler.GetVCenter(-1f) - langs.Length;
