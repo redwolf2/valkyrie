@@ -276,6 +276,7 @@ male,Homme
 female,Femme
 
 //monsters
+monster,Monstre
 undead,Mort vivant
 humanoid,Humanoïde
 spirit,Esprit
@@ -299,6 +300,10 @@ mountain,Montagne
 cold,Froid
 hot,Chaud
 water,Eau
+fleshless,Sans Chair
+snakeperson,Être Serpent
+relic,Relique
+elixir,Élixir
 
 //Tiles
 basement,Sous-sol
@@ -348,6 +353,7 @@ lava,Lave
 swamp,Marécage
 sludge,Boue
 ship,Navire
+temple,Temple
 train,Train
 
 // Colors
